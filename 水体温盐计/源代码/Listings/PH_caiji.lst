@@ -1,0 +1,160 @@
+C51 COMPILER V9.00   PH_CAIJI                                                              10/13/2019 15:15:24 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE PH_CAIJI
+OBJECT MODULE PLACED IN .\Objects\PH_caiji.obj
+COMPILER INVOKED BY: E:\Keil_v5\C51\BIN\C51.EXE PH_caiji.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -PH_caiji.lst) TABS(2) OBJECT(.\Objects\PH_caiji.obj)
+
+line level    source
+
+   1          /********************(C) COPRIGHT 2019 Crownto electronic **************************
+   2           * ÎÄ¼þÃû  £ºmain.c
+   3           * ÃèÊö    £º        
+   4           * Ó²¼þÁ¬½Ó£º
+   5           * PCF8591:VCC -> 5V; GND -> GND; SCL -> P1.6;SDA -> P1.7; 
+   6           *         OUT1~OUT8 -> P3¿Ú
+   7           * LCD1602:RS -> P2.5; RW -> P2.6; E -> P2.7;
+   8           *         D0~D7 -> P0¿Ú
+   9           * TDS´«¸ÐÆ÷Ä£¿é: VCC -> 5V; GND -> GND; AO -> AIN0;
+  10           *
+  11           * ¹¦ÄÜÃèÊö£º²âÁ¿TDSÖµÒº¾§ÏÔÊ¾£»
+  12                       ´®¿Ú½ÓÊÕ²âÁ¿ËùµÃµÄTDSÖµ£¨²¨ÌØÂÊ9600£©£»
+  13           *           ¿ÉÁ¬½ÓÉÏÎ»»úÏÔÊ¾TDSÖµ£»
+  14           * ÌÔ±¦    £ºhttps://ilovemcu.taobao.com
+  15          **********************************************************************************/
+  16          
+  17          #include <reg52.h>
+  18          #include <include.h>
+  19          #include "DS18B20.h"
+  20          
+  21          /**************Íâ²¿±äÁ¿¶¨Òå************************/
+  22          int num=0; 
+  23          /**************±äÁ¿¶¨Òå***************************/
+  24          double PH=0.0;
+  25          unsigned char disbuff[9]={0};
+  26          double ADC_Voltage=0.0;
+  27          float TDS=0.0,TDS_voltage;
+  28          float TDS_value=0.0,voltage_value;
+  29          float temp_data=25.0;
+  30          float compensationCoefficient=1.0;//ÎÂ¶ÈÐ£×¼ÏµÊý
+  31          float compensationVolatge;
+  32          float kValue=1.0;
+  33          
+  34          /*
+  35           * º¯ÊýÃû£ºGet_Voltage_Value
+  36           * ÃèÊö  £º»ñÈ¡ADC0809µÄ×ª»»µçÑ¹Öµ
+  37           *         
+  38           * ÊäÈë  £ºÎÞ
+  39           * Êä³ö  £ºÎÞ
+  40           * ËµÃ÷  £º
+  41           *            AIN0(0X40):ÈÈÃôµç×è
+  42           *            AIN1(0X41):Ðü¿Õ
+  43           *            AIN2(0X42):»¬¶¯±ä×èÆ÷
+  44           *            AIN3(0X43):¹âÃôµç×è
+  45           */
+  46          void Get_Voltage_Value()
+  47          {
+  48   1        ISendByte(PCF8591,0x40);    //µÚÒ»¸ö²ÎÊýÎªÆ÷¼þ£¬µÚ¶þ¸ö²ÎÊýÎª·¢ËÍµÄÊý¾Ý£¨¿ØÖÆ×Ö½Ú£©0x40±íÊ¾Ê¹ÄÜ£¬È¡Ïû×Ô¶¯ÔöÁ
+             -¿£¬Ñ¡ÔñÍ¨µÀ0
+  49   1            num=IRcvByte(PCF8591);  //ADC0 Ä£Êý×ª»»1      PHµç¼«
+  50   1            ADC_Voltage =num * 5.0/ 255;  //×ª»»ÎªµçÑ¹Öµ
+  51   1      }
+  52          /*
+  53           * º¯ÊýÃû£ºCharacter_Conversion
+C51 COMPILER V9.00   PH_CAIJI                                                              10/13/2019 15:15:24 PAGE 2   
+
+  54           * ÃèÊö  £ºÑÓÊ±º¯Êý
+  55           *         
+  56           * ÊäÈë  £ºunsigned char n£ºÑÓÊ±Á¿
+  57           * Êä³ö  £ºÎÞ
+  58           * ËµÃ÷  £º
+  59           */
+  60          /**************TDSÖµ²É¼¯º¯Êý***************/
+  61          void TDS_Value_Conversion()
+  62          {
+  63   1        Get_Voltage_Value();
+  64   1        TDS_voltage=(num*5.0)/256;
+  65   1        compensationCoefficient=1.0+0.02*((temp_data/10)-25.0); 
+  66   1        compensationVolatge=TDS_voltage/compensationCoefficient;
+  67   1        TDS_value=(133.42*compensationVolatge*compensationVolatge*compensationVolatge - 
+  68   1        255.86*compensationVolatge*compensationVolatge + 857.39*compensationVolatge)*0.5*kValue;
+  69   1        
+  70   1          if((TDS_value<=0)){TDS_value=0;}
+  71   1          if((TDS_value>1400)){TDS_value=1400;}
+  72   1          
+  73   1          /*ÏÔÊ¾TDS*/
+  74   1          disbuff[0]=(int)(TDS_value)/1000+'0';
+  75   1          disbuff[1]=(int)(TDS_value)%1000/100+'0'; 
+  76   1          disbuff[2]=(int)(TDS_value)%100/10+'0';
+  77   1          disbuff[3]=(int)(TDS_value)%10+'0';
+  78   1          
+  79   1          DisplaySingleChar(0x4,0,disbuff[0]);
+  80   1          DisplaySingleChar(0x5,0,disbuff[1]);
+  81   1          DisplaySingleChar(0x6,0,disbuff[2]);
+  82   1          DisplaySingleChar(0x7,0,disbuff[3]);
+  83   1        
+  84   1      }
+  85          void StartUART( void )
+  86          {               //²¨ÌØÂÊ9600
+  87   1           SCON = 0x50;
+  88   1           TMOD = 0x20;
+  89   1           TH1 = 0xFD;
+  90   1           TL1 = 0xFD; 
+  91   1           PCON = 0x00;
+  92   1           TR1 = 1;
+  93   1      }
+  94          //**********Í¨¹ý´®¿Ú½«½ÓÊÕµ½Êý¾Ý·¢ËÍ¸øPC¶Ë**************
+  95          void R_S_Byte(uchar R_Byte)
+  96          { 
+  97   1         SBUF = R_Byte;  
+  98   1           while( TI == 0 );        //²éÑ¯·¨
+  99   1           TI = 0;    
+ 100   1      }
+ 101          /*
+ 102           * º¯ÊýÃû£ºmain
+ 103           * ÃèÊö  £ºÖ÷º¯Êý
+ 104           * ÊäÈë  £ºÎÞ
+ 105           * Êä³ö  £ºÎÞ
+ 106           */
+ 107          void main(void)
+ 108          {
+ 109   1        int i;
+ 110   1        LCDInit();
+ 111   1        StartUART();
+ 112   1        
+ 113   1        DisplayString(0x0,0," Welcome   TDS  ");
+ 114   1        DisplayString(0x0,1,"Detection system");
+ 115   1        delay_1s();
+C51 COMPILER V9.00   PH_CAIJI                                                              10/13/2019 15:15:24 PAGE 3   
+
+ 116   1        WriteCmd(LCD_CLS);
+ 117   1        
+ 118   1        DisplayString(0x0,0,"TDS:");
+ 119   1        while(1)
+ 120   1        {   
+ 121   2              Get_Voltage_Value();
+ 122   2              TDS_Value_Conversion(); 
+ 123   2            for(i=0;i<5;i++)
+ 124   2              {
+ 125   3                R_S_Byte(disbuff[i]);
+ 126   3              } 
+ 127   2              R_S_Byte('\r');//·¢ËÍ»Ø³µ»»ÐÐ·û
+ 128   2              R_S_Byte('\n');
+ 129   2              delay_1s();
+ 130   2        } 
+ 131   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    661    ----
+   CONSTANT SIZE    =     39    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     51    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

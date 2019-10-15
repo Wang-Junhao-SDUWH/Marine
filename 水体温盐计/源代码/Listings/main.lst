@@ -1,0 +1,140 @@
+C51 COMPILER V9.00   MAIN                                                                  10/15/2019 21:56:19 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include <lcd.h>
+   3          #include <DS18B20.h>
+   4          
+   5          sbit SKey = P1^0;
+   6          sbit DisKey = P1^1;
+   7          sbit LED1 = P2^6;
+   8          sbit LED2 = P2^7;
+   9          
+  10          extern int DS18B20ReadTemp();
+  11          extern int TDS_Value_Conversion();
+  12          
+  13          //T记录温度信息，E记录TDS信息
+  14          char pdata TData[6];
+  15          char pdata EData[6];
+  16          char pdata MemT[108];
+  17          char pdata MemE[108];
+  18          
+  19          void main()
+  20          {
+  21   1        int temp,tds;
+  22   1        unsigned index = 0;   //表示存储位置
+  23   1        bit overflow = 0;     //判断存储容器状态（满/未满）
+  24   1        unsigned char i=0;
+  25   1        char reflect[]={'0','1','2','3','4','5','6','7','8','9'};
+  26   1        
+  27   1        
+  28   1        LCDInit();
+  29   1        while(1)
+  30   1        {
+  31   2          if(SKey == 0)
+  32   2          {
+  33   3            Delay(4);
+  34   3            if(SKey == 0)
+  35   3            {
+  36   4              LED1 = 0;
+  37   4              if(overflow == 1)
+  38   4                break;
+  39   4              
+  40   4              /*读取温度*/
+  41   4              temp=DS18B20ReadTemp();
+  42   4            
+  43   4              TData[0] = reflect[(temp%10)];
+  44   4              TData[1] = reflect[(temp%100/10)];
+  45   4              TData[2] = '.';
+  46   4              TData[3] = reflect[(temp%1000/100)];
+  47   4              TData[4] = reflect[(temp%10000/1000)];
+  48   4              TData[5] = ' ';
+  49   4              
+  50   4              for(i=0;i<=5;i++)
+  51   4              {
+  52   5                DisplaySingleChar(0,0,TData[i]);
+  53   5                Delay(100);
+  54   5              }
+C51 COMPILER V9.00   MAIN                                                                  10/15/2019 21:56:19 PAGE 2   
+
+  55   4              
+  56   4              /*读取TDS值*/
+  57   4              tds = TDS_Value_Conversion();
+  58   4              
+  59   4              EData[0] = reflect[(tds%10)];
+  60   4              EData[1] = reflect[(tds%100/10)];
+  61   4              EData[2] = reflect[(tds%1000/100)];
+  62   4              EData[3] = reflect[(tds%10000/1000)];
+  63   4              EData[4] = reflect[(tds%100000/10000)];
+  64   4              EData[5] = ' ';
+  65   4              
+  66   4      
+  67   4              LED1=0;
+  68   4              Delay(200);
+  69   4              for(i=0;i<=5;i++)
+  70   4              {
+  71   5                DisplaySingleChar(0,0,EData[i]);
+  72   5                Delay(100);
+  73   5              }
+  74   4              LED1=1;
+  75   4              
+  76   4              for(i=0;i<=5;i++)
+  77   4              {
+  78   5                MemT[index] = TData[i];
+  79   5                MemE[index] = EData[i];
+  80   5                index++;                  
+  81   5                if(index==108)          //index指向108，表示107刚刚存入数据，容器已满
+  82   5                {
+  83   6                  overflow = 1;
+  84   6                  break;
+  85   6                }
+  86   5                Delay(100);
+  87   5              }
+  88   4              
+  89   4            }
+  90   3          }
+  91   2          
+  92   2          if(DisKey == 0)
+  93   2          {
+  94   3            Delay(2);
+  95   3            if(DisKey == 0)
+  96   3            {
+  97   4              LCDInit();
+  98   4              LED2 = 0;
+  99   4              
+ 100   4              for(i=0;i<=index;i++)
+ 101   4              {
+ 102   5                DisplaySingleChar(0,0,MemT[i]);
+ 103   5                DisplaySingleChar(0,1,MemE[i]);
+ 104   5                Delay(100); 
+ 105   5              }
+ 106   4              
+ 107   4              LED2 = 1;
+ 108   4            }
+ 109   3          }
+ 110   2          
+ 111   2        }
+ 112   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    572    ----
+C51 COMPILER V9.00   MAIN                                                                  10/15/2019 21:56:19 PAGE 3   
+
+   CONSTANT SIZE    =     10    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =    228    ----
+   DATA SIZE        =   ----      13
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
