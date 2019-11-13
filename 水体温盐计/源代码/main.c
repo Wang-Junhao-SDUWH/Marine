@@ -10,7 +10,7 @@ sbit LED2 = P2^7;
 extern int DS18B20ReadTemp();
 extern int TDS_Value_Conversion();
 
-//T¼ÇÂ¼ÎÂ¶ÈĞÅÏ¢£¬E¼ÇÂ¼TDSĞÅÏ¢
+//Tè®°å½•æ¸©åº¦ä¿¡æ¯ï¼ŒEè®°å½•TDSä¿¡æ¯
 char pdata TData[6];
 char pdata EData[6];
 char pdata MemT[108];
@@ -19,8 +19,8 @@ char pdata MemE[108];
 void main()
 {
 	int temp,tds;
-	unsigned index = 0;		//±íÊ¾´æ´¢Î»ÖÃ
-	bit overflow = 0;			//ÅĞ¶Ï´æ´¢ÈİÆ÷×´Ì¬£¨Âú/Î´Âú£©
+	unsigned index = 0;		//è¡¨ç¤ºå­˜å‚¨ä½ç½®
+	bit overflow = 0;			//åˆ¤æ–­å­˜å‚¨å®¹å™¨çŠ¶æ€ï¼ˆæ»¡/æœªæ»¡ï¼‰
 	unsigned char i=0;
 	char reflect[]={'0','1','2','3','4','5','6','7','8','9'};
 	
@@ -37,7 +37,7 @@ void main()
 				if(overflow == 1)
 					break;
 				
-				/*¶ÁÈ¡ÎÂ¶È*/
+				/*è¯»å–æ¸©åº¦*/
 				temp=DS18B20ReadTemp();
 			
 				TData[0] = reflect[(temp%10)];
@@ -53,7 +53,7 @@ void main()
 					Delay(100);
 				}
 				
-				/*¶ÁÈ¡TDSÖµ*/
+				/*è¯»å–TDSå€¼*/
 				tds = TDS_Value_Conversion();
 				
 				EData[0] = reflect[(tds%10)];
@@ -78,7 +78,7 @@ void main()
 					MemT[index] = TData[i];
 					MemE[index] = EData[i];
 					index++;									
-					if(index==108)					//indexÖ¸Ïò108£¬±íÊ¾107¸Õ¸Õ´æÈëÊı¾İ£¬ÈİÆ÷ÒÑÂú
+					if(index==108)					//indexæŒ‡å‘108ï¼Œè¡¨ç¤º107åˆšåˆšå­˜å…¥æ•°æ®ï¼Œå®¹å™¨å·²æ»¡
 					{
 						overflow = 1;
 						break;
@@ -87,26 +87,37 @@ void main()
 				}
 				
 			}
-	  }
+	  	}
 		
 		if(DisKey == 0)
 		{
 			Delay(2);
 			if(DisKey == 0)
 			{
-				LCDInit();
 				LED2 = 0;
+				LCDInit();
 				
 				for(i=0;i<=index;i++)
 				{
 					DisplaySingleChar(0,0,MemT[i]);
-					DisplaySingleChar(0,1,MemE[i]);
 					Delay(100);	
 				}
 				
-				LED2 = 1;
+			if(DisKey == 0)
+			{
+				Delay(2);
+				if(DisKey == 0)
+				{
+					LCDInit();	
+					for(i=0;i<=index;i++)
+					{
+						DisplaySingleChar(0,0,MemE[i]);
+						Delay(100);	
+					}
+				}
 			}
+			LED2 = 1;
 		}
-		
 	}
+		
 }
